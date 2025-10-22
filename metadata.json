@@ -1,0 +1,7 @@
+{
+  "name": "Lucid Weaver: AI Dream Journal",
+  "description": "Record your dreams with your voice, and let AI transcribe them, generate a surrealist image, and provide a deep psychological interpretation. Explore your subconscious with an interactive chat.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
