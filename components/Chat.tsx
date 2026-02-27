@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createChat } from '../services/geminiService';
 import type { ChatMessage } from '../types';
-import type { Chat as ChatInstance, GenerateContentResponse } from '@google/genai';
+import type { Chat as ChatInstance } from '@google/genai';
 
 
 interface ChatProps {
@@ -13,6 +13,8 @@ const Chat: React.FC<ChatProps> = ({ dreamContext }) => {
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    // Separate flag: true only while waiting for the very first chunk (before model message appears)
+    const [isWaitingForFirstChunk, setIsWaitingForFirstChunk] = useState(false);
     const chatInstanceRef = useRef<ChatInstance | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -33,27 +35,32 @@ const Chat: React.FC<ChatProps> = ({ dreamContext }) => {
         setMessages(prev => [...prev, userMessage]);
         setInput('');
         setIsLoading(true);
+        setIsWaitingForFirstChunk(true);
 
         try {
             if (chatInstanceRef.current) {
                 const stream = await chatInstanceRef.current.sendMessageStream({ message: input });
 
                 let modelResponse = '';
+                // Append the placeholder model message once streaming starts
                 setMessages(prev => [...prev, { role: 'model', content: '' }]);
+                setIsWaitingForFirstChunk(false);
 
                 for await (const chunk of stream) {
                     const chunkText = chunk.text;
                     modelResponse += chunkText;
-                    setMessages(prev => {
-                        const newMessages = [...prev];
-                        newMessages[newMessages.length - 1].content = modelResponse;
-                        return newMessages;
-                    });
+                    // Immutable update: map over messages and replace only the last one
+                    setMessages(prev =>
+                        prev.map((msg, i) =>
+                            i === prev.length - 1 ? { ...msg, content: modelResponse } : msg
+                        )
+                    );
                 }
             }
         } catch (error) {
             console.error('Chat error:', error);
-             setMessages(prev => [...prev, { role: 'model', content: 'Sorry, I encountered an error. Please try again.' }]);
+            setIsWaitingForFirstChunk(false);
+            setMessages(prev => [...prev, { role: 'model', content: 'Sorry, I encountered an error. Please try again.' }]);
         } finally {
             setIsLoading(false);
         }
@@ -70,7 +77,8 @@ const Chat: React.FC<ChatProps> = ({ dreamContext }) => {
                         </div>
                     </div>
                 ))}
-                 {isLoading && messages[messages.length - 1]?.role === 'user' && (
+                 {/* Spinner shown only while waiting for the first token to arrive */}
+                 {isWaitingForFirstChunk && (
                      <div className="flex justify-start mb-3">
                          <div className="max-w-xs px-4 py-2 rounded-2xl bg-gray-700 text-gray-200">
                              <div className="flex items-center space-x-2">

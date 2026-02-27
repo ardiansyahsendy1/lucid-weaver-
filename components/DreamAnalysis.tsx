@@ -1,5 +1,6 @@
 
 import React from 'react';
+import ReactMarkdown from 'react-markdown';
 import type { DreamAnalysisResult } from '../types';
 import Chat from './Chat';
 
@@ -44,7 +45,9 @@ const DreamAnalysis: React.FC<DreamAnalysisProps> = ({ result, onReset }) => {
                         <h3 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-500 mb-3">
                             Psychological Interpretation
                         </h3>
-                        <div className="prose prose-invert prose-sm max-w-none text-gray-300" dangerouslySetInnerHTML={{ __html: result.interpretation.replace(/\n/g, '<br />') }} />
+                        <div className="prose prose-invert prose-sm max-w-none text-gray-300">
+                            <ReactMarkdown>{result.interpretation}</ReactMarkdown>
+                        </div>
                     </div>
                     <div className="bg-gray-800 rounded-lg shadow-xl flex-grow flex flex-col">
                         <Chat dreamContext={result.transcription} />
